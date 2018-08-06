@@ -1,23 +1,17 @@
 package com.luxoft.dvodopian.tesla.classifier
 
 import awaitString
-import com.beust.klaxon.*
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.Request
 import kotlinx.coroutines.experimental.runBlocking
-import java.util.*
 
 
 fun main(args: Array<String>) = runBlocking {
     // ?department=1&region=4&country=3
     val request: Request = Fuel.get("https://www.tesla.com/careers/search/?redirect=no#/")
 
-    val str = request.awaitString()
-    val careersStr =str.substringAfter("window.careers = ").substringBefore(";\n    window.tesla.strings = ")
-
-    val careerData = Klaxon()
-            .converter(CareerData.JobType.converter)
-            .parse<CareerData>(careersStr)!!
+    val html = request.awaitString()
+    val careerData = parseCareerDatafromHtml(html)
 
     val allJobs = careerData.jobs
     val jobs = allJobs

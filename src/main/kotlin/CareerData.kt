@@ -3,6 +3,7 @@ package com.luxoft.dvodopian.tesla.classifier
 import com.beust.klaxon.Converter
 import com.beust.klaxon.Json
 import com.beust.klaxon.JsonValue
+import com.beust.klaxon.Klaxon
 import java.util.*
 
 // [locations, departments, regions, listings, hotjobs, countries, cities, countriesMapping, states, countriesRegion, statesCities]
@@ -46,3 +47,12 @@ data class CareerData(
         }
     }
 }
+
+fun parseCareerDatafromJson(json: String) = Klaxon()
+        .converter(CareerData.JobType.converter)
+        .parse<CareerData>(json)!!
+
+fun parseCareerDatafromHtml(html: String) = html
+        .substringAfter("window.careers = ")
+        .substringBefore(";\n    window.tesla.strings = ")
+        .let { parseCareerDatafromJson(it) }
