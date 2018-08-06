@@ -1,16 +1,13 @@
 package com.luxoft.dvodopian.tesla.classifier
 
 import awaitString
+import awaitStringResponse
 import com.github.kittinunf.fuel.Fuel
-import com.github.kittinunf.fuel.core.Request
 import kotlinx.coroutines.experimental.runBlocking
 
 
 fun main(args: Array<String>) = runBlocking {
-    // ?department=1&region=4&country=3
-    val request: Request = Fuel.get("https://www.tesla.com/careers/search/?redirect=no#/")
-
-    val html = request.awaitString()
+    val html = Fuel.get("https://www.tesla.com/careers/search/?redirect=no#/").awaitString()
     val careerData = parseCareerDatafromHtml(html)
 
     val allJobs = careerData.jobs
@@ -18,25 +15,27 @@ fun main(args: Array<String>) = runBlocking {
             .filter { it.location.country == "US" }
             .filter { it.department.name == "Engineering" }
 
-    println(jobs.joinToString(separator = "\n"))
+//    println(jobs.joinToString(separator = "\n"))
+//
+//    println("Hot Jobs: \n" + jobs.filter { it.isHot }.map { it }.joinToString(separator = "\n"))
+//    println("Hot jobs ${careerData.hotjobs.size} out of ${jobs.size}")
 
-    println("Hot Jobs: \n" + jobs.filter { it.isHot }.map { it }.joinToString(separator = "\n"))
 
-    println("Hot jobs ${careerData.hotjobs.size} out of ${jobs.size}")
+    val requests = jobs.map { job ->
+        val pageUrl = """https://www.tesla.com/careers/job/${job.codeName()}"""
+        val request = Fuel.get(pageUrl)
+        Pair(job, request)
+    }
 
-}
+    for((job, request) in requests) {
+        val (_, _, pageResult) = request.awaitStringResponse()
+        val (page, err) = pageResult
 
-data class TeslaJob(
-        val id: Int,
-        val title: String,
-        val type: CareerData.JobType,
-        val location: CareerData.Location,
-        val department: CareerData.Department,
-        val isHot: Boolean
-)
+        print("${job.title} ")
 
-val CareerData.jobs get() = listings.map {
-    val location = locations[it.locationId.toString()]!!
-    val department = departments[it.departmentId.toString()]!!
-    TeslaJob(it.id, it.title, it.type, location, department, it.id in hotjobs)
+        if(page != null)
+            println("OK")
+        else
+            println("--?--> ${job.codeName()}")
+    }
 }
